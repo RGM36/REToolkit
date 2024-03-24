@@ -1,0 +1,23 @@
+#!/bin/bash
+
+INPUT="${1:-$PWD}"
+SCANDIR="/sandbox/${INPUT##*/}"
+
+TS=`date +%s`
+SANDBOX="retksandbox_$TS"
+
+container_name="retoolkit_$TS"
+re_img='redsystems/retoolkit'
+
+if [ $# -ge 1 ]
+then
+    printf "Creating a sandbox for $INPUT : "
+    docker volume create $SANDBOX
+    (sleep 1 ; docker cp "$INPUT" "$container_name":"$SCANDIR" >/dev/null)&
+    docker run -it --rm --hostname retkt-${INPUT##*/} --name "$container_name" --user re --network none -v "$SANDBOX":/sandbox $re_img sh -c "zsh"
+    printf "Removing sandbox "
+    docker volume rm $SANDBOX
+else
+    echo "Mounting current directory $INPUT to $SCANDIR"
+    docker run -it --rm --hostname retkt-${INPUT##*/} --name "$container_name" --user re --network none -v "$INPUT":/"$SCANDIR" $re_img sh -c "zsh"
+fi
